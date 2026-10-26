@@ -1,0 +1,114 @@
+---
+import '../styles/global.css';
+import ThemeMenu from '../components/ThemeMenu.astro';
+import LangMenu from '../components/LangMenu.astro';
+import { site } from '../lib/site';
+import { locales, stripLang, t, url, type Lang } from '../lib/i18n';
+
+interface Crumb {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  lang: Lang;
+  title?: string;
+  description?: string;
+  crumbs?: Crumb[];
+  progress?: boolean;
+  noindex?: boolean;
+  noAlternates?: boolean;
+}
+
+const { lang, title, description = site.tagline[lang], crumbs, progress = false, noindex = false, noAlternates = false } = Astro.props;
+const ui = t(lang);
+const fullTitle = title ? `${title} | ${site.name}` : site.name;
+const basePath = stripLang(Astro.url.pathname);
+const alternates = locales.map((l) => ({ lang: l, href: noAlternates ? url(l, '/') : url(l, basePath) }));
+const nav = [
+  { label: ui.navBlog, href: url(lang, '/blog/') },
+  { label: ui.navSeries, href: url(lang, '/series/') },
+  { label: ui.navAbout, href: url(lang, '/about/'), optional: true },
+];
+const legal = [
+  { label: ui.legal, href: url(lang, '/legal/') },
+  { label: ui.privacy, href: url(lang, '/privacy/') },
+];
+const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {!noAlternates && alternates.map((a) => <link rel="alternate" hreflang={a.lang} href={a.href} />)}
+    <meta name="theme-color" content="#f1f1f0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#2b2a28" media="(prefers-color-scheme: dark)" />
+    <script is:inline>
+      try {
+        const root = document.documentElement;
+        const supported = ['en', 'de'];
+        let wanted = localStorage.getItem('lang');
+        if (!supported.includes(wanted)) {
+          wanted = (navigator.languages || [navigator.language]).map((l) => l.slice(0, 2).toLowerCase()).find((l) => supported.includes(l)) || 'en';
+          localStorage.setItem('lang', wanted);
+        }
+        if (wanted !== root.lang) {
+          const alt = document.querySelector('link[rel="alternate"][hreflang="' + wanted + '"]');
+          if (alt) location.replace(alt.href + location.hash);
+        }
+        const saved = localStorage.getItem('theme');
+        if (['light', 'dark', 'vs', 'idea'].includes(saved)) root.dataset.theme = saved;
+        const reading = JSON.parse(localStorage.getItem('reading') || '{}');
+        if (['s', 'l'].includes(reading.size)) root.dataset.size = reading.size;
+        if (['medium', 'full'].includes(reading.width)) root.dataset.width = reading.width;
+        if (reading.font === 'serif') root.dataset.font = 'serif';
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell">
+        <a class="brand" href={url(lang, '/')}>{site.name}</a>
+        <nav aria-label="Main">
+          {nav.map((item) => (
+            <a class:list={[item.optional && 'nav-optional']} href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>{item.label}</a>
+          ))}
+          <a class="nav-github" href={site.github} rel="me">GitHub</a>
+          <LangMenu lang={lang} alternates={alternates} />
+          <ThemeMenu lang={lang} />
+        </nav>
+      </div>
+    </header>
+
+    {crumbs && (
+      <div class="crumb-bar">
+        <div class="shell">
+          <ol class="crumbs label" aria-label={ui.breadcrumb}>
+            {crumbs.map((c) => <li>{c.href ? <a href={c.href}>{c.label}</a> : c.label}</li>)}
+          </ol>
+        </div>
+        {progress && <div class="progress" aria-hidden="true"><span data-progress></span></div>}
+      </div>
+    )}
+
+    <main class="shell">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell">
+        <p>{site.name}</p>
+        <nav aria-label="Footer">
+          {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+          <a href={site.github} rel="me">GitHub</a>
+          {legal.map((item) => <a href={item.href}>{item.label}</a>)}
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

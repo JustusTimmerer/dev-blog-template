@@ -1,0 +1,51 @@
+---
+import { t, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const ui = t(Astro.props.lang);
+---
+
+<dialog class="lightbox" aria-label={ui.enlarge} data-figure={ui.figure} data-enlarge={ui.enlarge}>
+  <button type="button" data-close>{ui.close}</button>
+  <img alt="" data-full />
+</dialog>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>('.lightbox');
+  const full = dialog?.querySelector<HTMLImageElement>('[data-full]');
+  const images = document.querySelectorAll<HTMLImageElement>('.prose img');
+  const figureLabel = dialog?.dataset.figure ?? 'Fig.';
+  const enlargeLabel = dialog?.dataset.enlarge ?? 'Enlarge';
+
+  function open(img: HTMLImageElement) {
+    if (!dialog || !full) return;
+    full.src = img.currentSrc || img.src;
+    full.alt = img.alt;
+    dialog.showModal();
+  }
+
+  images.forEach((img, i) => {
+    const figure = document.createElement('figure');
+    const caption = document.createElement('figcaption');
+    caption.className = 'label';
+    const text = document.createElement('span');
+    text.textContent = `${figureLabel} ${String(i + 1).padStart(2, '0')}${img.title ? ` · ${img.title}` : ''}`;
+    const zoom = document.createElement('button');
+    zoom.type = 'button';
+    zoom.className = 'zoom';
+    zoom.textContent = enlargeLabel;
+    zoom.addEventListener('click', () => open(img));
+    caption.append(text, zoom);
+
+    const parent = img.parentElement;
+    const host = parent && parent.tagName === 'P' && parent.childNodes.length === 1 ? parent : img;
+    host.replaceWith(figure);
+    figure.append(img, caption);
+    img.addEventListener('click', () => open(img));
+  });
+
+  dialog?.addEventListener('click', () => dialog.close());
+</script>

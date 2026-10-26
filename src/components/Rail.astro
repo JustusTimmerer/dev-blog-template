@@ -1,0 +1,44 @@
+---
+import { getPosts, getSeries, seriesUrl, tagUrl } from '../lib/posts';
+import { site } from '../lib/site';
+import { t, url, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const ui = t(lang);
+const path = Astro.url.pathname;
+const series = await getSeries(lang);
+const posts = await getPosts(lang);
+const tags = [...new Set(posts.flatMap((p) => p.entry.data.tags))].sort();
+const current = (href: string) => (path === href ? 'page' : undefined);
+---
+
+<div class="rail-col">
+<aside class="rail">
+  <h1>{site.name}</h1>
+  <p class="tagline">{site.tagline[lang]}</p>
+  <hr />
+  <div class="rail-groups">
+    <nav class="rail-group" aria-label={ui.navBlog}>
+      <a href={url(lang, '/')} aria-current={current(url(lang, '/'))}>{ui.start}</a>
+      <a href={url(lang, '/blog/')} aria-current={current(url(lang, '/blog/'))}>{ui.allPosts}</a>
+      <a href={url(lang, '/about/')} aria-current={current(url(lang, '/about/'))}>{ui.navAbout}</a>
+    </nav>
+    {series.length > 0 && (
+      <nav class="rail-group" aria-label={ui.series}>
+        <span class="label">{ui.series}</span>
+        {series.map((s) => <a href={seriesUrl(lang, s.key)} aria-current={current(seriesUrl(lang, s.key))}>{s.entry.data.title}</a>)}
+      </nav>
+    )}
+    {tags.length > 0 && (
+      <nav class="rail-group" aria-label={ui.topics}>
+        <span class="label">{ui.topics}</span>
+        {tags.map((tag) => <a href={tagUrl(lang, tag)} aria-current={current(tagUrl(lang, tag))}>{tag}</a>)}
+      </nav>
+    )}
+  </div>
+</aside>
+</div>

@@ -1,0 +1,31 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPages, type Localized, type Page } from '../../lib/posts';
+import { langParam, locales, type Lang } from '../../lib/i18n';
+
+// Renders src/content/pages/<lang>/<key>.md at /<key>/ and /<lang>/<key>/, for example about, legal and privacy.
+export async function getStaticPaths() {
+  const paths = [];
+  for (const lang of locales) {
+    for (const page of await getPages(lang)) {
+      paths.push({ params: { lang: langParam(lang), page: page.key }, props: { lang, page } });
+    }
+  }
+  return paths;
+}
+
+const { lang, page } = Astro.props as { lang: Lang; page: Localized<Page> };
+const { Content } = await render(page.entry);
+const data = page.entry.data;
+---
+
+<BaseLayout lang={lang} title={data.title} description={data.description} noindex={data.noindex}>
+  <header class="page-head" lang={page.fallback ? page.contentLang : undefined}>
+    <h1>{data.title}</h1>
+    {data.description && <p>{data.description}</p>}
+  </header>
+  <div class="prose" lang={page.fallback ? page.contentLang : undefined}>
+    <Content />
+  </div>
+</BaseLayout>

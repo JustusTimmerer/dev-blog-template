@@ -1,0 +1,137 @@
+---
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Toc from '../../../components/Toc.astro';
+import Lightbox from '../../../components/Lightbox.astro';
+import ReadingSettings from '../../../components/ReadingSettings.astro';
+import PostList from '../../../components/PostList.astro';
+import { getPosts, getSeriesMap, getSeriesPosts, postUrl, readingMinutes, seriesUrl, tagUrl, type LocalPost } from '../../../lib/posts';
+import { formatDate, langNameIn, langParam, locales, t, url, type Lang } from '../../../lib/i18n';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const lang of locales) {
+    for (const post of await getPosts(lang)) {
+      paths.push({ params: { lang: langParam(lang), slug: post.key }, props: { lang, post } });
+    }
+  }
+  return paths;
+}
+
+const { lang, post } = Astro.props as { lang: Lang; post: LocalPost };
+const ui = t(lang);
+const data = post.entry.data;
+const { Content, headings } = await render(post.entry);
+
+const series = data.series ? (await getSeriesMap(lang)).get(data.series) : undefined;
+const seriesPosts = series ? await getSeriesPosts(lang, series.key) : [];
+const index = seriesPosts.findIndex((p) => p.key === post.key);
+const prev = index > 0 ? seriesPosts[index - 1] : undefined;
+const next = index >= 0 ? seriesPosts[index + 1] : undefined;
+
+const seriesKeys = new Set(seriesPosts.map((p) => p.key));
+const more = (await getPosts(lang)).filter((p) => p.key !== post.key && !seriesKeys.has(p.key)).slice(0, 3);
+const hasToc = headings.some((h) => h.depth === 2);
+const minutes = readingMinutes(post.entry.body);
+
+const attributes = [
+  { name: 'Published', value: formatDate(data.date, lang) },
+  ...(data.updated ? [{ name: 'Updated', value: formatDate(data.updated, lang) }] : []),
+  { name: 'ReadingTime', value: `${minutes} min` },
+  ...(series && data.part ? [{ name: 'Series', value: `${series.entry.data.title}, ${ui.part(data.part)}` }] : []),
+];
+
+const crumbs = [
+  { label: ui.navBlog, href: url(lang, '/blog/') },
+  ...(series ? [{ label: series.entry.data.title, href: seriesUrl(lang, series.key) }] : []),
+  { label: data.title },
+];
+---
+
+<BaseLayout lang={lang} title={data.title} description={data.description} crumbs={crumbs} progress>
+  <article class:list={['post', !hasToc && 'no-toc']} lang={post.fallback ? post.contentLang : undefined}>
+    <header class="post-head" id="top">
+      <h1 data-ln={4 + attributes.length}><span class="decl-class" aria-hidden="true"></span>{data.title}<span class="decl-class-post" aria-hidden="true"></span></h1>
+      <div class="code-line doc-open" data-ln="1" aria-hidden="true"></div>
+      <p class="lede" data-ln="2"><span class="doc-text">{data.description}</span></p>
+      <div class="code-line doc-close" data-ln="3" aria-hidden="true"></div>
+      {attributes.map((a, i) => (
+        <p class="code-attr" data-ln={4 + i}>
+          <span class="attr-open" aria-hidden="true"></span><span class="ann">{a.name}</span><span class="punct">(</span><span class="str">"{a.value}"</span><span class="punct">)</span><span class="attr-close" aria-hidden="true"></span>
+        </p>
+      ))}
+      <div class="code-brace class-open" data-ln={5 + attributes.length} aria-hidden="true"></div>
+      <span class="label meta" lang={lang}>
+        {formatDate(data.date, lang)}
+        {data.updated && <> · {ui.updated} {formatDate(data.updated, lang)}</>}
+        {' · '}{ui.minRead(minutes)}
+        {series && data.part && <> · {series.entry.data.title} {ui.part(data.part)}</>}
+      </span>
+      {post.fallback && <p class="fallback-note" lang={lang}><strong>{ui.note}:</strong> {ui.onlyIn(langNameIn[lang][post.contentLang])}</p>}
+    </header>
+
+    {data.cover && (
+      <figure class="post-cover">
+        <Image src={data.cover} alt={data.coverAlt} widths={[800, 1200, 1600]} sizes="(max-width: 1000px) 100vw, 736px" loading="eager" />
+      </figure>
+    )}
+
+    {hasToc && (
+      <>
+        <div class="toc-desktop" lang={lang}>
+          <div class="side-sticky">
+            <Toc lang={lang} headings={headings} />
+          </div>
+        </div>
+        <details class="toc-mobile" lang={lang}>
+          <summary class="label">{ui.contents}</summary>
+          <Toc lang={lang} headings={headings} />
+        </details>
+      </>
+    )}
+
+    <div class="prose" style={`--ln-vs: ${5 + attributes.length}; --ln-idea: ${4 + attributes.length}`}>
+      <Content />
+      {hasToc && <div class="code-brace brace-close" aria-hidden="true"></div>}
+      <div class="code-brace class-close" aria-hidden="true"></div>
+    </div>
+
+    <footer class="post-foot" lang={lang}>
+      {data.tags.length > 0 && (
+        <ul class="tags" aria-label={ui.topics}>
+          {data.tags.map((tag) => <li><a href={tagUrl(lang, tag)}>{tag}</a></li>)}
+        </ul>
+      )}
+
+      {series && (
+        <nav class="series-box" aria-label={ui.series}>
+          <span class="label">{ui.series} · {ui.parts(seriesPosts.length)}</span>
+          <h2><a href={seriesUrl(lang, series.key)}>{series.entry.data.title}</a></h2>
+          <ol>
+            {seriesPosts.map((p) => (
+              <li aria-current={p.key === post.key ? 'true' : undefined}>
+                {p.key === post.key ? <span>{p.entry.data.title}</span> : <a href={postUrl(lang, p.key)}>{p.entry.data.title}</a>}
+              </li>
+            ))}
+          </ol>
+          {(prev || next) && (
+            <div class="pager">
+              {prev ? <a href={postUrl(lang, prev.key)}>{ui.previousPart}</a> : <span></span>}
+              {next && <a href={postUrl(lang, next.key)}>{ui.nextPart}</a>}
+            </div>
+          )}
+        </nav>
+      )}
+
+      {more.length > 0 && (
+        <section>
+          <h2 class="section-title">{ui.morePosts}</h2>
+          <PostList lang={lang} posts={more} />
+        </section>
+      )}
+    </footer>
+  </article>
+  <Lightbox lang={lang} />
+  <ReadingSettings lang={lang} />
+</BaseLayout>

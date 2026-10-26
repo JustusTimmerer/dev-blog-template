@@ -1,0 +1,114 @@
+---
+import { t, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const ui = t(Astro.props.lang);
+const groups = [
+  {
+    key: 'size',
+    label: ui.textSize,
+    options: [
+      { value: 's', text: 'A', title: ui.sizeS, cls: 'size-s' },
+      { value: 'm', text: 'A', title: ui.sizeM, cls: 'size-m' },
+      { value: 'l', text: 'A', title: ui.sizeL, cls: 'size-l' },
+    ],
+  },
+  {
+    key: 'width',
+    label: ui.pageWidth,
+    options: [
+      { value: 'narrow', text: '', title: ui.widthNarrow, cls: 'width-narrow' },
+      { value: 'medium', text: '', title: ui.widthMedium, cls: 'width-medium' },
+      { value: 'full', text: '', title: ui.widthFull, cls: 'width-full' },
+    ],
+  },
+  {
+    key: 'font',
+    label: ui.font,
+    options: [
+      { value: 'sans', text: 'Aa', title: ui.fontSans, cls: 'font-sans' },
+      { value: 'serif', text: 'Aa', title: ui.fontSerif, cls: 'font-serif' },
+    ],
+  },
+];
+---
+
+<div class="reading-fab" data-reading-fab>
+  <div class="reading" id="reading-panel" role="group" aria-label={ui.readingSettings} hidden data-reading>
+    <span class="label">{ui.reading}</span>
+    {groups.map((g) => (
+      <div class="reading-group" role="group" aria-label={g.label} data-group={g.key}>
+        {g.options.map((o) => (
+          <button type="button" class={o.cls} aria-pressed="false" aria-label={o.title} title={o.title} data-key={g.key} data-value={o.value}>
+            {o.text}
+            {g.key === 'width' && <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>}
+          </button>
+        ))}
+      </div>
+    ))}
+  </div>
+  <button class="reading-toggle" type="button" aria-expanded="false" aria-controls="reading-panel" aria-label={ui.readingSettings} title={ui.readingSettings} data-reading-toggle>
+    <span class="glyph-serif" aria-hidden="true">A</span><span class="glyph-sans" aria-hidden="true">a</span>
+  </button>
+</div>
+
+<script>
+  const defaults: Record<string, string> = { size: 'm', width: 'narrow', font: 'sans' };
+  const root = document.documentElement;
+  const fab = document.querySelector<HTMLElement>('[data-reading-fab]')!;
+  const panel = fab.querySelector<HTMLElement>('[data-reading]')!;
+  const toggle = fab.querySelector<HTMLButtonElement>('[data-reading-toggle]')!;
+  const options = [...panel.querySelectorAll<HTMLButtonElement>('button[data-key]')];
+
+  function read(): Record<string, string> {
+    try {
+      return { ...defaults, ...JSON.parse(localStorage.getItem('reading') ?? '{}') };
+    } catch {
+      return { ...defaults };
+    }
+  }
+
+  function apply(settings: Record<string, string>) {
+    for (const key of Object.keys(defaults)) {
+      if (settings[key] === defaults[key]) delete root.dataset[key];
+      else root.dataset[key] = settings[key];
+    }
+    options.forEach((b) => b.setAttribute('aria-pressed', String(settings[b.dataset.key!] === b.dataset.value)));
+  }
+
+  function setOpen(open: boolean, focus = true) {
+    panel.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open && focus) (options.find((o) => o.getAttribute('aria-pressed') === 'true' && o.offsetParent) ?? options[0]).focus();
+    if (!open && focus) toggle.focus();
+  }
+
+  toggle.addEventListener('click', () => setOpen(panel.hidden));
+
+  options.forEach((b) =>
+    b.addEventListener('click', () => {
+      const settings = { ...read(), [b.dataset.key!]: b.dataset.value! };
+      try {
+        localStorage.setItem('reading', JSON.stringify(settings));
+      } catch {}
+      apply(settings);
+      window.dispatchEvent(new Event('resize'));
+    }),
+  );
+
+  fab.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) {
+      e.preventDefault();
+      setOpen(false);
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!panel.hidden && !fab.contains(e.target as Node)) setOpen(false, false);
+  });
+
+  apply(read());
+</script>

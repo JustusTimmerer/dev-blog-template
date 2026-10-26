@@ -1,0 +1,94 @@
+---
+import { t, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+}
+
+const ui = t(Astro.props.lang);
+const themes = [
+  { id: 'system', label: ui.themeSystem },
+  { id: 'light', label: ui.themeLight },
+  { id: 'dark', label: ui.themeDark },
+  { id: 'vs', label: 'Visual Studio' },
+  { id: 'idea', label: 'IntelliJ' },
+];
+---
+
+<div class="theme-menu" data-theme-menu>
+  <button class="theme-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-label={ui.theme} title={ui.theme} data-theme-button>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none" />
+    </svg>
+  </button>
+  <div class="theme-list" role="menu" aria-label={ui.theme} hidden data-theme-list>
+    {themes.map((t) => (
+      <button type="button" role="menuitemradio" aria-checked="false" data-theme-option={t.id}>
+        <span class="check" aria-hidden="true">✓</span>{t.label}
+      </button>
+    ))}
+  </div>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const menu = document.querySelector<HTMLElement>('[data-theme-menu]')!;
+  const button = menu.querySelector<HTMLButtonElement>('[data-theme-button]')!;
+  const list = menu.querySelector<HTMLElement>('[data-theme-list]')!;
+  const options = [...list.querySelectorAll<HTMLButtonElement>('[data-theme-option]')];
+
+  const current = () => root.dataset.theme ?? 'system';
+
+  function mark() {
+    options.forEach((o) => o.setAttribute('aria-checked', String(o.dataset.themeOption === current())));
+  }
+
+  function apply(id: string) {
+    if (id === 'system') delete root.dataset.theme;
+    else root.dataset.theme = id;
+    try {
+      if (id === 'system') localStorage.removeItem('theme');
+      else localStorage.setItem('theme', id);
+    } catch {}
+    mark();
+  }
+
+  function open() {
+    list.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    (options.find((o) => o.getAttribute('aria-checked') === 'true') ?? options[0]).focus();
+  }
+
+  function close(focusButton = true) {
+    list.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    if (focusButton) button.focus();
+  }
+
+  button.addEventListener('click', () => (list.hidden ? open() : close()));
+
+  options.forEach((o) =>
+    o.addEventListener('click', () => {
+      apply(o.dataset.themeOption!);
+      close();
+    }),
+  );
+
+  list.addEventListener('keydown', (e) => {
+    const i = options.indexOf(document.activeElement as HTMLButtonElement);
+    if (e.key === 'ArrowDown') options[(i + 1) % options.length].focus();
+    else if (e.key === 'ArrowUp') options[(i - 1 + options.length) % options.length].focus();
+    else if (e.key === 'Home') options[0].focus();
+    else if (e.key === 'End') options[options.length - 1].focus();
+    else if (e.key === 'Escape') close();
+    else return;
+    e.preventDefault();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!list.hidden && !menu.contains(e.target as Node)) close(false);
+  });
+
+  mark();
+</script>

@@ -1,0 +1,28 @@
+---
+import { getSeriesMap, postLabel, postUrl, type LocalPost } from '../lib/posts';
+import { formatDate, t, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+  posts: LocalPost[];
+}
+
+const { lang, posts } = Astro.props;
+const ui = t(lang);
+const seriesByKey = await getSeriesMap(lang);
+---
+
+<ul class="post-list">
+  {posts.map((post) => (
+    <li>
+      <a class="post-row" href={postUrl(lang, post.key)}>
+        <span class="when label">{formatDate(post.entry.data.date, lang)}</span>
+        <span lang={post.fallback ? post.contentLang : undefined}>
+          <span class="label">{postLabel(post, seriesByKey)}{post.entry.data.draft && ` · ${ui.draft}`}{post.fallback && ` · ${post.contentLang.toUpperCase()}`}</span>
+          <h3>{post.entry.data.title}</h3>
+          <p>{post.entry.data.description}</p>
+        </span>
+      </a>
+    </li>
+  ))}
+</ul>

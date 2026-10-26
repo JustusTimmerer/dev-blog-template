@@ -1,0 +1,66 @@
+---
+import { langNames, t, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+  alternates: { lang: Lang; href: string }[];
+}
+
+const { lang, alternates } = Astro.props;
+const ui = t(lang);
+---
+
+<div class="theme-menu lang-menu" data-lang-menu>
+  <button class="theme-toggle lang-toggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-label={ui.language} title={ui.language} data-lang-button>
+    {lang.toUpperCase()}
+  </button>
+  <div class="theme-list" role="menu" aria-label={ui.language} hidden data-lang-list>
+    {alternates.map((a) => (
+      <a role="menuitemradio" aria-checked={String(a.lang === lang)} href={a.href} hreflang={a.lang} lang={a.lang} data-lang-option={a.lang}>
+        <span class="check" aria-hidden="true">✓</span>{langNames[a.lang]}
+      </a>
+    ))}
+  </div>
+</div>
+
+<script>
+  const menu = document.querySelector<HTMLElement>('[data-lang-menu]')!;
+  const button = menu.querySelector<HTMLButtonElement>('[data-lang-button]')!;
+  const list = menu.querySelector<HTMLElement>('[data-lang-list]')!;
+  const options = [...list.querySelectorAll<HTMLAnchorElement>('[data-lang-option]')];
+
+  function open() {
+    list.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    (options.find((o) => o.getAttribute('aria-checked') === 'true') ?? options[0]).focus();
+  }
+
+  function close(focusButton = true) {
+    list.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    if (focusButton) button.focus();
+  }
+
+  button.addEventListener('click', () => (list.hidden ? open() : close()));
+
+  options.forEach((o) =>
+    o.addEventListener('click', () => {
+      try {
+        localStorage.setItem('lang', o.dataset.langOption!);
+      } catch {}
+    }),
+  );
+
+  list.addEventListener('keydown', (e) => {
+    const i = options.indexOf(document.activeElement as HTMLAnchorElement);
+    if (e.key === 'ArrowDown') options[(i + 1) % options.length].focus();
+    else if (e.key === 'ArrowUp') options[(i - 1 + options.length) % options.length].focus();
+    else if (e.key === 'Escape') close();
+    else return;
+    e.preventDefault();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!list.hidden && !menu.contains(e.target as Node)) close(false);
+  });
+</script>

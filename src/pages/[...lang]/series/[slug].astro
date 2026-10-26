@@ -1,0 +1,40 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PostList from '../../../components/PostList.astro';
+import { getSeries, getSeriesPosts, type LocalSeries } from '../../../lib/posts';
+import { langParam, locales, t, url, type Lang } from '../../../lib/i18n';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const lang of locales) {
+    for (const series of await getSeries(lang)) {
+      paths.push({ params: { lang: langParam(lang), slug: series.key }, props: { lang, series } });
+    }
+  }
+  return paths;
+}
+
+const { lang, series } = Astro.props as { lang: Lang; series: LocalSeries };
+const ui = t(lang);
+const { Content } = await render(series.entry);
+const posts = await getSeriesPosts(lang, series.key);
+---
+
+<BaseLayout
+  lang={lang}
+  title={series.entry.data.title}
+  description={series.entry.data.description}
+  crumbs={[{ label: ui.series, href: url(lang, '/series/') }, { label: series.entry.data.title }]}
+>
+  <header class="page-head" lang={series.fallback ? series.contentLang : undefined}>
+    <span class="label" lang={lang}>{ui.series} · {ui.parts(posts.length)} · {ui[series.entry.data.status]}</span>
+    <h1>{series.entry.data.title}</h1>
+    <p>{series.entry.data.description}</p>
+  </header>
+  <div class="prose" lang={series.fallback ? series.contentLang : undefined}>
+    <Content />
+  </div>
+  <h2 class="section-title">{ui.parts(posts.length)}</h2>
+  <PostList lang={lang} posts={posts} />
+</BaseLayout>

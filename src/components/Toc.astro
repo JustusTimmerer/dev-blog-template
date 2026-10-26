@@ -1,0 +1,68 @@
+---
+import type { MarkdownHeading } from 'astro';
+import { t, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+  headings: MarkdownHeading[];
+}
+
+const ui = t(Astro.props.lang);
+const items = Astro.props.headings.filter((h) => h.depth === 2);
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<nav class="toc" aria-label={ui.contents}>
+  <span class="label">{ui.contents}</span>
+  <ol>
+    <li><a href="#top" data-toc="top"><span class="num">00</span><span>{ui.introduction}</span></a></li>
+    {items.map((h, i) => (
+      <li><a href={`#${h.slug}`} data-toc={h.slug}><span class="num">{pad(i + 1)}</span><span>{h.text}</span></a></li>
+    ))}
+  </ol>
+  <span class="read label"><span data-read>0</span>% {ui.read}</span>
+</nav>
+
+<script>
+  const article = document.querySelector<HTMLElement>('.prose');
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-toc]')];
+  const ids = [...new Set(links.map((a) => a.dataset.toc!))];
+  const targets = ids
+    .map((id) => document.getElementById(id))
+    .filter((el): el is HTMLElement => el !== null);
+  const bar = document.querySelector<HTMLElement>('[data-progress]');
+  const readouts = document.querySelectorAll<HTMLElement>('[data-read]');
+
+  function update() {
+    if (!article) return;
+    const offset = 120;
+    let current = 'top';
+    const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+    for (const el of targets) {
+      const top = el.getBoundingClientRect().top;
+      if (top - offset <= 0 || (atBottom && top < window.innerHeight)) current = el.id;
+    }
+    links.forEach((a) => a.classList.toggle('active', a.dataset.toc === current));
+
+    const rect = article.getBoundingClientRect();
+    const total = rect.height - window.innerHeight + offset;
+    const done = Math.min(1, Math.max(0, (offset - rect.top) / Math.max(total, 1)));
+    const pct = Math.round(done * 100);
+    if (bar) bar.style.width = `${pct}%`;
+    readouts.forEach((r) => (r.textContent = String(pct)));
+  }
+
+  let queued = false;
+  function onScroll() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      update();
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  update();
+</script>

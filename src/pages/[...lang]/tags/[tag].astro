@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PostList from '../../../components/PostList.astro';
+import { getPosts, type LocalPost } from '../../../lib/posts';
+import { langParam, locales, t, url, type Lang } from '../../../lib/i18n';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const lang of locales) {
+    const posts = await getPosts(lang);
+    const tags = [...new Set(posts.flatMap((p) => p.entry.data.tags))];
+    for (const tag of tags) {
+      paths.push({ params: { lang: langParam(lang), tag }, props: { lang, tag, posts: posts.filter((p) => p.entry.data.tags.includes(tag)) } });
+    }
+  }
+  return paths;
+}
+
+const { lang, tag, posts } = Astro.props as { lang: Lang; tag: string; posts: LocalPost[] };
+const ui = t(lang);
+---
+
+<BaseLayout lang={lang} title={`${ui.topic}: ${tag}`} crumbs={[{ label: ui.navBlog, href: url(lang, '/blog/') }, { label: `${ui.topic}: ${tag}` }]}>
+  <header class="page-head">
+    <span class="label">{ui.topic}</span>
+    <h1>{tag}</h1>
+    <p>{ui.postsOnTopic(posts.length)}</p>
+  </header>
+  <PostList lang={lang} posts={posts} />
+</BaseLayout>

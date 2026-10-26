@@ -1,0 +1,25 @@
+---
+import { Image } from 'astro:assets';
+import { getSeriesMap, postLabel, postUrl, type LocalPost } from '../lib/posts';
+import { formatDate, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+  post: LocalPost;
+  size?: 'lead' | 'side';
+}
+
+const { lang, post, size = 'side' } = Astro.props;
+const data = post.entry.data;
+const seriesByKey = await getSeriesMap(lang);
+const Heading = size === 'lead' ? 'h2' : 'h3';
+---
+
+<a class="card" href={postUrl(lang, post.key)}>
+  {data.cover && (
+    <Image class="cover" src={data.cover} alt={data.coverAlt} widths={[480, 800, 1200]} sizes="(max-width: 860px) 100vw, 720px" />
+  )}
+  <span class="label">{postLabel(post, seriesByKey)} · {formatDate(data.date, lang)}{post.fallback && ` · ${post.contentLang.toUpperCase()}`}</span>
+  <Heading lang={post.fallback ? post.contentLang : undefined}>{data.title}</Heading>
+  <p lang={post.fallback ? post.contentLang : undefined}>{data.description}</p>
+</a>
