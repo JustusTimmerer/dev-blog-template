@@ -35,9 +35,18 @@ function localize<T extends { id: string }>(entries: T[], lang: Lang): Localized
   });
 }
 
-export async function getPosts(lang: Lang): Promise<LocalPost[]> {
+/** Every entry of the posts collection, posts and quick bites, newest first. */
+export async function getEntries(lang: Lang): Promise<LocalPost[]> {
   const all = await getCollection('posts', ({ data }) => import.meta.env.DEV || !data.draft);
   return localize(all, lang).sort((a, b) => b.entry.data.date.valueOf() - a.entry.data.date.valueOf());
+}
+
+export async function getPosts(lang: Lang): Promise<LocalPost[]> {
+  return (await getEntries(lang)).filter((p) => p.entry.data.kind === 'post');
+}
+
+export async function getBites(lang: Lang): Promise<LocalPost[]> {
+  return (await getEntries(lang)).filter((p) => p.entry.data.kind === 'bite');
 }
 
 export async function getSeries(lang: Lang): Promise<LocalSeries[]> {
@@ -61,20 +70,40 @@ export async function getPages(lang: Lang): Promise<Localized<Page>[]> {
 export interface GlossaryItem {
   key: string;
   terms: string[];
+  title: string;
   definition: string;
+  /** Page that opens in a new tab: set when the term points to a quick bite. */
+  href?: string;
+  /** External page shown as a "learn more" link in the tooltip. */
   link?: string;
 }
 
-export async function getGlossary(lang: Lang): Promise<GlossaryItem[]> {
-  return localize(await getCollection('glossary'), lang).map(({ key, entry }) => ({
-    key,
-    terms: [entry.data.term, ...entry.data.aliases],
-    definition: (entry.body ?? '').trim(),
-    link: entry.data.link,
-  }));
+/**
+ * Glossary terms for one post. `lang` picks the term files, `readerLang` the language of the bite URL.
+ * A term with `bite` takes title and summary from that quick bite. If the bite does not exist
+ * (for example a draft in the production build), the term keeps its own text, or is dropped without one.
+ */
+export async function getGlossary(lang: Lang, readerLang: Lang = lang): Promise<GlossaryItem[]> {
+  const bites = new Map((await getBites(lang)).map((b) => [b.key, b]));
+  const items: GlossaryItem[] = [];
+  for (const { key, entry } of localize(await getCollection('glossary'), lang)) {
+    const { term, aliases, link, bite } = entry.data;
+    const target = bite ? bites.get(bite) : undefined;
+    const definition = target ? target.entry.data.description : (entry.body ?? '').trim();
+    if (!definition) continue;
+    items.push({
+      key,
+      terms: [term, ...aliases],
+      title: target ? target.entry.data.title : term,
+      definition,
+      href: target ? postUrl(readerLang, target.key) : undefined,
+      link,
+    });
+  }
+  return items;
 }
 
-export const postUrl =(lang: Lang, key: string) => url(lang, `/blog/${key}/`);
+export const postUrl = (lang: Lang, key: string) => url(lang, `/blog/${key}/`);
 export const seriesUrl = (lang: Lang, key: string) => url(lang, `/series/${key}/`);
 export const tagUrl = (lang: Lang, tag: string) => url(lang, `/tags/${tag}/`);
 

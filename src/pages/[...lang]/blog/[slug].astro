@@ -7,13 +7,13 @@ import Lightbox from '../../../components/Lightbox.astro';
 import Glossary from '../../../components/Glossary.astro';
 import ReadingSettings from '../../../components/ReadingSettings.astro';
 import PostList from '../../../components/PostList.astro';
-import { getGlossary, getPosts, getSeriesMap, getSeriesPosts, postUrl, readingMinutes, seriesUrl, tagUrl, type LocalPost } from '../../../lib/posts';
+import { getEntries, getGlossary, getPosts, getSeriesMap, getSeriesPosts, postUrl, readingMinutes, seriesUrl, tagUrl, type LocalPost } from '../../../lib/posts';
 import { formatDate, langNameIn, langParam, locales, t, url, type Lang } from '../../../lib/i18n';
 
 export async function getStaticPaths() {
   const paths = [];
   for (const lang of locales) {
-    for (const post of await getPosts(lang)) {
+    for (const post of await getEntries(lang)) {
       paths.push({ params: { lang: langParam(lang), slug: post.key }, props: { lang, post } });
     }
   }
@@ -33,7 +33,8 @@ const next = index >= 0 ? seriesPosts[index + 1] : undefined;
 
 const seriesKeys = new Set(seriesPosts.map((p) => p.key));
 const more = (await getPosts(lang)).filter((p) => p.key !== post.key && !seriesKeys.has(p.key)).slice(0, 3);
-const glossary = await getGlossary(post.contentLang);
+const glossary = await getGlossary(post.contentLang, lang);
+const isBite = data.kind === 'bite';
 const hasToc = headings.some((h) => h.depth === 2);
 const minutes = readingMinutes(post.entry.body);
 
@@ -45,7 +46,7 @@ const attributes = [
 ];
 
 const crumbs = [
-  { label: ui.navBlog, href: url(lang, '/blog/') },
+  isBite ? { label: ui.navBites, href: url(lang, '/bites/') } : { label: ui.navBlog, href: url(lang, '/blog/') },
   ...(series ? [{ label: series.entry.data.title, href: seriesUrl(lang, series.key) }] : []),
   { label: data.title },
 ];

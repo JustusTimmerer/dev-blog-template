@@ -16,6 +16,8 @@ const posts = defineCollection({
       tags: z.array(z.string()).default([]),
       featured: z.boolean().default(false),
       draft: z.boolean().default(false),
+      // A quick bite is a short post (under five minutes) with one idea. It has its own list at /bites/.
+      kind: z.enum(['post', 'bite']).default('post'),
       series: z.string().optional(),
       part: z.number().int().positive().optional(),
       cover: image().optional(),
@@ -42,14 +44,19 @@ const pages = defineCollection({
   }),
 });
 
-// A glossary term. The body is the explanation shown in the tooltip (plain text).
-// The first use of the term or of an alias in a post becomes a tooltip.
+// A glossary term. The first use of the term or of an alias in a post becomes a tooltip.
+// Link types:
+//   none:   the body is the explanation (plain text), shown on hover, focus and click.
+//   link:   an external URL, shown as "learn more" in the tooltip.
+//   bite:   the key of a quick bite. The tooltip shows its title and summary (description),
+//           and a click opens the bite in a new tab. The body is then not needed.
 const glossary = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/glossary' }),
   schema: z.object({
     term: z.string(),
     aliases: z.array(z.string()).default([]),
     link: z.string().url().optional(),
+    bite: z.string().optional(),
   }),
 });
 

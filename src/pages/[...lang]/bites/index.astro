@@ -1,0 +1,21 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PostList from '../../../components/PostList.astro';
+import { getBites } from '../../../lib/posts';
+import { localeStaticPaths, t, type Lang } from '../../../lib/i18n';
+
+export const getStaticPaths = localeStaticPaths;
+
+const { lang } = Astro.props as { lang: Lang };
+const ui = t(lang);
+const bites = await getBites(lang);
+---
+
+<BaseLayout lang={lang} title={ui.navBites}>
+  <header class="page-head">
+    <span class="label">{ui.navBites}</span>
+    <h1>{ui.bitesTitle}</h1>
+    <p>{ui.bitesLede}</p>
+  </header>
+  <PostList lang={lang} posts={bites} />
+</BaseLayout>

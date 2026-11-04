@@ -3,6 +3,7 @@ import '../styles/global.css';
 import ThemeMenu from '../components/ThemeMenu.astro';
 import LangMenu from '../components/LangMenu.astro';
 import { site } from '../lib/site';
+import { getBites } from '../lib/posts';
 import { locales, stripLang, t, url, type Lang } from '../lib/i18n';
 
 interface Crumb {
@@ -25,9 +26,11 @@ const ui = t(lang);
 const fullTitle = title ? `${title} | ${site.name}` : site.name;
 const basePath = stripLang(Astro.url.pathname);
 const alternates = locales.map((l) => ({ lang: l, href: noAlternates ? url(l, '/') : url(l, basePath) }));
+const hasBites = (await getBites(lang)).length > 0;
 const nav = [
   { label: ui.navBlog, href: url(lang, '/blog/') },
   { label: ui.navSeries, href: url(lang, '/series/') },
+  ...(hasBites ? [{ label: ui.navBites, href: url(lang, '/bites/'), optional: true }] : []),
   { label: ui.navAbout, href: url(lang, '/about/'), optional: true },
 ];
 const legal = [
