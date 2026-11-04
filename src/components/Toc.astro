@@ -36,15 +36,16 @@ const pad = (n: number) => String(n).padStart(2, '0');
   function update() {
     if (!article) return;
     const offset = 120;
+    const rect = article.getBoundingClientRect();
+    // Short last sections never reach the offset line, so once the article's end is on screen a visible heading counts.
+    const articleEnd = rect.bottom <= window.innerHeight;
     let current = 'top';
-    const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
     for (const el of targets) {
       const top = el.getBoundingClientRect().top;
-      if (top - offset <= 0 || (atBottom && top < window.innerHeight)) current = el.id;
+      if (top - offset <= 0 || (articleEnd && top < window.innerHeight)) current = el.id;
     }
     links.forEach((a) => a.classList.toggle('active', a.dataset.toc === current));
 
-    const rect = article.getBoundingClientRect();
     const total = rect.height - window.innerHeight + offset;
     const done = Math.min(1, Math.max(0, (offset - rect.top) / Math.max(total, 1)));
     const pct = Math.round(done * 100);
