@@ -42,4 +42,15 @@ const pages = defineCollection({
   }),
 });
 
-export const collections = { posts, series, pages };
+// A glossary term. The body is the explanation shown in the tooltip (plain text).
+// The first use of the term or of an alias in a post becomes a tooltip.
+const glossary = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/glossary' }),
+  schema: z.object({
+    term: z.string(),
+    aliases: z.array(z.string()).default([]),
+    link: z.string().url().optional(),
+  }),
+});
+
+export const collections = { posts, series, pages, glossary };

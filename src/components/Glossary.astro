@@ -1,0 +1,172 @@
+---
+import { t, type Lang } from '../lib/i18n';
+import type { GlossaryItem } from '../lib/posts';
+
+interface Props {
+  lang: Lang;
+  items: GlossaryItem[];
+}
+
+const { lang, items } = Astro.props;
+const ui = t(lang);
+const json = JSON.stringify(items).replace(/</g, '\\u003c');
+---
+
+{items.length > 0 && (
+  <>
+    <script id="glossary-data" type="application/json" set:html={json} />
+    <div class="term-tip" id="term-tip" role="tooltip" data-more={ui.learnMore} hidden></div>
+  </>
+)}
+
+<script>
+  interface Item {
+    key: string;
+    terms: string[];
+    definition: string;
+    link?: string;
+  }
+
+  const data = document.getElementById('glossary-data');
+  const prose = document.querySelector<HTMLElement>('.prose');
+  const tip = document.getElementById('term-tip');
+
+  if (data && prose && tip) {
+    const items: Item[] = JSON.parse(data.textContent ?? '[]');
+    const byKey = new Map(items.map((item) => [item.key, item]));
+    const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const matchers = items.map((item) => ({
+      item,
+      re: new RegExp(`(?<![\\p{L}\\p{N}_-])(?:${item.terms.map(escape).join('|')})(?![\\p{L}\\p{N}_-])`, 'u'),
+    }));
+
+    const skip = 'a, code, pre, kbd, button, figcaption, h1, h2, h3, h4, h5, h6, [aria-hidden="true"]';
+    const walker = document.createTreeWalker(prose, NodeFilter.SHOW_TEXT);
+    const nodes: Text[] = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!n.parentElement?.closest(skip)) nodes.push(n as Text);
+    }
+
+    const used = new Set<string>();
+    for (const node of nodes) {
+      const text = node.data;
+      const hits: { start: number; end: number; item: Item }[] = [];
+      for (const { item, re } of matchers) {
+        if (used.has(item.key)) continue;
+        const m = re.exec(text);
+        if (m) hits.push({ start: m.index, end: m.index + m[0].length, item });
+      }
+      if (hits.length === 0) continue;
+      hits.sort((a, b) => a.start - b.start || b.end - a.end);
+
+      const fragment = document.createDocumentFragment();
+      let pos = 0;
+      for (const hit of hits) {
+        if (hit.start < pos) continue;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'term';
+        button.dataset.key = hit.item.key;
+        button.setAttribute('aria-expanded', 'false');
+        button.textContent = text.slice(hit.start, hit.end);
+        fragment.append(text.slice(pos, hit.start), button);
+        used.add(hit.item.key);
+        pos = hit.end;
+      }
+      fragment.append(text.slice(pos));
+      node.replaceWith(fragment);
+    }
+
+    let current: HTMLElement | null = null;
+    let pinned = false;
+    let timer = 0;
+
+    function hide() {
+      window.clearTimeout(timer);
+      if (current) {
+        current.setAttribute('aria-expanded', 'false');
+        current.removeAttribute('aria-describedby');
+      }
+      current = null;
+      pinned = false;
+      tip!.hidden = true;
+      tip!.classList.remove('pinned');
+    }
+
+    function hideSoon() {
+      window.clearTimeout(timer);
+      if (!pinned) timer = window.setTimeout(hide, 180);
+    }
+
+    function show(term: HTMLElement) {
+      window.clearTimeout(timer);
+      const item = byKey.get(term.dataset.key ?? '');
+      if (!item || !tip) return;
+      if (current && current !== term) hide();
+      current = term;
+      term.setAttribute('aria-expanded', 'true');
+      term.setAttribute('aria-describedby', 'term-tip');
+
+      tip.replaceChildren();
+      const title = document.createElement('strong');
+      title.textContent = item.terms[0];
+      const body = document.createElement('span');
+      body.textContent = item.definition;
+      tip.append(title, body);
+      if (item.link) {
+        const more = document.createElement('a');
+        more.href = item.link;
+        more.target = '_blank';
+        more.rel = 'noopener';
+        more.textContent = `${tip.dataset.more ?? 'Learn more'} →`;
+        tip.append(more);
+      }
+
+      tip.hidden = false;
+      const rect = term.getBoundingClientRect();
+      const margin = 12;
+      const width = tip.offsetWidth;
+      const left = Math.min(Math.max(rect.left, margin), document.documentElement.clientWidth - width - margin);
+      const below = rect.bottom + 8;
+      const top = below + tip.offsetHeight > window.innerHeight && rect.top > tip.offsetHeight + 16 ? rect.top - tip.offsetHeight - 8 : below;
+      tip.style.left = `${left + window.scrollX}px`;
+      tip.style.top = `${top + window.scrollY}px`;
+    }
+
+    const termOf = (target: EventTarget | null) => (target instanceof Element ? target.closest<HTMLElement>('.term') : null);
+
+    prose.addEventListener('mouseover', (e) => {
+      const term = termOf(e.target);
+      if (term && !pinned) show(term);
+    });
+    prose.addEventListener('mouseout', (e) => {
+      if (termOf(e.target) && !pinned) hideSoon();
+    });
+    prose.addEventListener('focusin', (e) => {
+      const term = termOf(e.target);
+      if (term && !pinned) show(term);
+    });
+    prose.addEventListener('focusout', (e) => {
+      if (termOf(e.target) && !pinned) hideSoon();
+    });
+    prose.addEventListener('click', (e) => {
+      const term = termOf(e.target);
+      if (!term) return;
+      if (pinned && current === term) {
+        hide();
+        return;
+      }
+      show(term);
+      pinned = true;
+      tip.classList.add('pinned');
+    });
+    tip.addEventListener('mouseenter', () => window.clearTimeout(timer));
+    tip.addEventListener('mouseleave', hideSoon);
+    document.addEventListener('click', (e) => {
+      if (current && !termOf(e.target) && !tip.contains(e.target as Node)) hide();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hide();
+    });
+  }
+</script>

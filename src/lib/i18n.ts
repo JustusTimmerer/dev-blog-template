@@ -82,6 +82,7 @@ const en = {
   figure: 'Fig.',
   enlarge: 'Enlarge',
   close: 'Close',
+  learnMore: 'Learn more',
   breadcrumb: 'Breadcrumb',
 };
 
@@ -142,6 +143,7 @@ const de: UI = {
   figure: 'Abb.',
   enlarge: 'Vergrößern',
   close: 'Schließen',
+  learnMore: 'Mehr erfahren',
   breadcrumb: 'Brotkrümelnavigation',
 };
 

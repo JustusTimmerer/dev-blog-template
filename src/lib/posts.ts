@@ -58,7 +58,23 @@ export async function getPages(lang: Lang): Promise<Localized<Page>[]> {
   return localize(await getCollection('pages'), lang);
 }
 
-export const postUrl = (lang: Lang, key: string) => url(lang, `/blog/${key}/`);
+export interface GlossaryItem {
+  key: string;
+  terms: string[];
+  definition: string;
+  link?: string;
+}
+
+export async function getGlossary(lang: Lang): Promise<GlossaryItem[]> {
+  return localize(await getCollection('glossary'), lang).map(({ key, entry }) => ({
+    key,
+    terms: [entry.data.term, ...entry.data.aliases],
+    definition: (entry.body ?? '').trim(),
+    link: entry.data.link,
+  }));
+}
+
+export const postUrl =(lang: Lang, key: string) => url(lang, `/blog/${key}/`);
 export const seriesUrl = (lang: Lang, key: string) => url(lang, `/series/${key}/`);
 export const tagUrl = (lang: Lang, tag: string) => url(lang, `/tags/${tag}/`);
 
