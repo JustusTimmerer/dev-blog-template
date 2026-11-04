@@ -37,12 +37,13 @@ const pad = (n: number) => String(n).padStart(2, '0');
     if (!article) return;
     const offset = 120;
     const rect = article.getBoundingClientRect();
-    // Short last sections never reach the offset line, so once the article's end is on screen a visible heading counts.
+    // Short last sections never reach the reading line, so once the article's end is on screen a visible heading counts.
     const articleEnd = rect.bottom <= window.innerHeight;
+    const line = Math.max(offset, window.innerHeight / 3);
     let current = 'top';
     for (const el of targets) {
       const top = el.getBoundingClientRect().top;
-      if (top - offset <= 0 || (articleEnd && top < window.innerHeight)) current = el.id;
+      if (top <= line || (articleEnd && top < window.innerHeight)) current = el.id;
     }
     links.forEach((a) => a.classList.toggle('active', a.dataset.toc === current));
 
