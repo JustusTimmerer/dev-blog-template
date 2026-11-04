@@ -497,6 +497,8 @@ img { max-width: 100%; height: auto; display: block; }
 .prose code { font-family: var(--mono); font-size: 0.82em; background: var(--surface); padding: 0.1em 0.35em; border-radius: 3px; }
 .prose pre { background: var(--code-bg) !important; color: var(--code-fg); border: 1px solid var(--code-line); padding: 18px 20px; border-radius: 4px; overflow-x: auto; font-size: 14px; line-height: 1.6; }
 .prose pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+.prose .code-figure > pre { margin: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+:root .prose figure.code-figure > figcaption.code-title { display: block; margin: 0; padding: 7px 20px; background: var(--code-bg); color: var(--ink-soft); border: 1px solid var(--code-line); border-bottom: 0; border-radius: 4px 4px 0 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; overflow-wrap: anywhere; }
 .prose hr { border: 0; border-top: 1px solid var(--line); margin: 3em 0; }
 .prose table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 14px; line-height: 1.5; display: block; overflow-x: auto; }
 .prose th, .prose td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--line); }

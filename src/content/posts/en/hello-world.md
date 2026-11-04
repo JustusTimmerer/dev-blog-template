@@ -20,7 +20,7 @@ Readers choose a theme, a text size, a page width and a font. The site remembers
 
 Each post starts with a small block of fields:
 
-```yaml
+```yaml title="src/content/posts/en/my-post.md"
 title: My post
 description: One sentence for lists and search engines.
 date: 2026-10-26

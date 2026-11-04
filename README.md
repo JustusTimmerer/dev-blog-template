@@ -73,6 +73,16 @@ A series file has `title`, `description`, `featured` and `status` (`ongoing` or 
 
 The `pages` collection holds simple pages such as About, Legal notice and Privacy. Each file becomes a page at `/<file name>/`. Set `noindex: true` to keep a page out of search engines.
 
+### Code blocks
+
+If you add `title="..."` after the language of a code block, the title shows above the block. Use it for a file path or a class name.
+
+````text
+```json title="~/.config/app/settings.json"
+{ "theme": "dark" }
+```
+````
+
 ## Deployment
 
 The build output in `dist/` is plain HTML, CSS, JavaScript, fonts and images. Upload the content of the folder to the root of your web space, for example by FTP.

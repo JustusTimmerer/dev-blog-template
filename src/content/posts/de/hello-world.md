@@ -20,7 +20,7 @@ Leser wählen ein Design, eine Schriftgröße, eine Seitenbreite und eine Schrif
 
 Jeder Beitrag beginnt mit einem kleinen Block an Feldern:
 
-```yaml
+```yaml title="src/content/posts/de/mein-beitrag.md"
 title: Mein Beitrag
 description: Ein Satz für Listen und Suchmaschinen.
 date: 2026-10-26

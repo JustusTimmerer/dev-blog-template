@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import { satteri } from '@astrojs/markdown-satteri';
 import intellijDark from './shiki-intellij.mjs';
 import codeStructure from './src/lib/code-structure.mjs';
+import codeTitle from './src/lib/code-title.mjs';
 
 export default defineConfig({
   output: 'static',
@@ -14,6 +15,7 @@ export default defineConfig({
         idea: intellijDark,
       },
       defaultColor: 'base',
+      transformers: [codeTitle()],
     },
   },
 });
