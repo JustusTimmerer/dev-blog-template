@@ -81,7 +81,7 @@ const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
           {nav.map((item) => (
             <a class:list={[item.optional && 'nav-optional']} href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>{item.label}</a>
           ))}
-          <a class="nav-github" href={site.github} rel="me">GitHub</a>
+          <a class="nav-github" href={site.github} target="_blank" rel="me noopener noreferrer">GitHub</a>
           <LangMenu lang={lang} alternates={alternates} />
           <ThemeMenu lang={lang} />
         </nav>
@@ -108,7 +108,7 @@ const isCurrent = (href: string) => Astro.url.pathname.startsWith(href);
         <p>{site.name}</p>
         <nav aria-label="Footer">
           {nav.map((item) => <a href={item.href}>{item.label}</a>)}
-          <a href={site.github} rel="me">GitHub</a>
+          <a href={site.github} target="_blank" rel="me noopener noreferrer">GitHub</a>
           {legal.map((item) => <a href={item.href}>{item.label}</a>)}
         </nav>
       </div>
