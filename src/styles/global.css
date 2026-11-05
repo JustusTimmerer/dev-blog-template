@@ -486,7 +486,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 .prose { font-size: 17px; line-height: 1.7; letter-spacing: -0.011em; }
 .prose > * { max-width: var(--prose); }
-.prose > table, .prose > pre { max-width: none; }
+.prose > table, .prose > pre, .prose > .code-figure { max-width: none; }
 .prose > figure:not(.code-figure) { max-width: var(--figure); }
 .prose p, .prose ul, .prose ol, .prose blockquote, .prose pre, .prose table, .prose figure { margin: 0 0 1.35em; }
 .prose h2, .prose h3 { font-weight: 500; letter-spacing: -0.02em; scroll-margin-top: calc(var(--bar-h) + 24px); }
