@@ -30,6 +30,8 @@
   --page: 1160px;
   --gutter: 24px;
   --prose: 38rem;
+  /* A figure matches the text column at the default width and grows a third as fast when the reader widens the column. */
+  --figure: calc(38rem + (var(--prose) - 38rem) / 3);
   --bar-h: 44px;
 }
 
@@ -484,7 +486,8 @@ img { max-width: 100%; height: auto; display: block; }
 
 .prose { font-size: 17px; line-height: 1.7; letter-spacing: -0.011em; }
 .prose > * { max-width: var(--prose); }
-.prose > figure, .prose > table, .prose > pre { max-width: none; }
+.prose > table, .prose > pre { max-width: none; }
+.prose > figure:not(.code-figure) { max-width: var(--figure); }
 .prose p, .prose ul, .prose ol, .prose blockquote, .prose pre, .prose table, .prose figure { margin: 0 0 1.35em; }
 .prose h2, .prose h3 { font-weight: 500; letter-spacing: -0.02em; scroll-margin-top: calc(var(--bar-h) + 24px); }
 .prose h2 { font-size: 30px; line-height: 1.2; margin: 2.2em 0 0.6em; }
@@ -653,6 +656,8 @@ img { max-width: 100%; height: auto; display: block; }
   border-left: 1px solid var(--syn-guide);
   max-width: calc(var(--prose) + 2 * var(--s));
 }
+:root:is([data-theme='vs'], [data-theme='idea']) .prose > figure:not(.code-figure) { max-width: calc(var(--figure) + var(--s)); }
+:root:is([data-theme='vs'], [data-theme='idea']) .prose > h2 ~ figure:not(.code-figure, .code-brace) { max-width: calc(var(--figure) + 2 * var(--s)); }
 :root:is([data-theme='vs'], [data-theme='idea']) .prose > h2 ~ :is(p, ul, ol):has(+ .code-brace) { padding-bottom: 0; }
 :root:is([data-theme='vs'], [data-theme='idea']) .prose > h2 ~ h3 { padding-top: 0.6em; font-size: 16px; color: var(--syn-comment); }
 :root:is([data-theme='vs'], [data-theme='idea']) .prose > h2 ~ pre {
