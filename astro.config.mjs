@@ -3,11 +3,12 @@ import { satteri } from '@astrojs/markdown-satteri';
 import intellijDark from './shiki-intellij.mjs';
 import codeStructure from './src/lib/code-structure.mjs';
 import codeTitle from './src/lib/code-title.mjs';
+import externalLinks from './src/lib/external-links.mjs';
 
 export default defineConfig({
   output: 'static',
   markdown: {
-    processor: satteri({ hastPlugins: [codeStructure] }),
+    processor: satteri({ hastPlugins: [codeStructure, externalLinks] }),
     shikiConfig: {
       themes: {
         base: 'github-dark-high-contrast',
