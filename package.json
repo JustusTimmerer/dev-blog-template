@@ -1,6 +1,6 @@
 {
   "name": "dev-blog-template",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A reading-first blog template for Astro with editor themes, reading settings and English/German content.",
   "license": "MIT-0",
   "private": true,
