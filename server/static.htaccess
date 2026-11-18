@@ -1,0 +1,6 @@
+# Do not expose configuration files, including if PHP handling is disabled.
+<FilesMatch "(?i)^(?:php\.ini|\.user\.ini|contact-config\.php)(?:\..*)?$">
+  Require all denied
+</FilesMatch>
+# Fail closed for other PHP entry points, including old files left by FTP uploads.
+RewriteRule \.(?:php[0-9]*|phtml|phar)(?:[./]|$) - [F,END,NC]

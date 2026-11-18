@@ -59,16 +59,21 @@ const ui = t(lang);
           credentials: 'omit',
           signal: controller.signal,
         });
-        const result = await response.json();
-        if (response.ok && result.ok === true) {
-          form.reset();
-          status.textContent = form.dataset.success!;
-        } else if (response.status === 429) {
+        // Apache may reject a request before PHP runs and return HTML, not JSON.
+        if (response.status === 429) {
           status.textContent = form.dataset.limited!;
         } else if (response.status === 422 || response.status === 413) {
           status.textContent = form.dataset.invalid!;
-        } else {
+        } else if (!response.ok) {
           status.textContent = form.dataset.error!;
+        } else {
+          const result = await response.json();
+          if (result.ok === true) {
+            form.reset();
+            status.textContent = form.dataset.success!;
+          } else {
+            status.textContent = form.dataset.error!;
+          }
         }
       } catch {
         // A lost response does not prove that the server failed to send the message.

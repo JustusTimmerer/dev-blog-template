@@ -1,0 +1,18 @@
+# Only this root endpoint may reach PHP. Reject unused request features first.
+<Files "contact.php">
+  LimitRequestBody 65536
+  AcceptPathInfo Off
+</Files>
+RewriteCond %{REQUEST_METHOD} !^(GET|POST)$
+RewriteRule ^contact\.php$ - [F,END]
+RewriteCond %{QUERY_STRING} !^$
+RewriteRule ^contact\.php$ - [F,END]
+RewriteCond %{HTTP:Content-Encoding} !^$
+RewriteRule ^contact\.php$ - [F,END]
+RewriteCond %{REQUEST_METHOD} =POST
+RewriteCond %{HTTP:Content-Type} !^application/x-www-form-urlencoded(?:[[:space:]]*;[[:space:]]*charset=UTF-8)?[[:space:]]*$ [NC]
+RewriteRule ^contact\.php$ - [F,END]
+RewriteCond %{REQUEST_METHOD} =POST
+RewriteCond %{HTTP:X-Contact-Form} !=1
+RewriteRule ^contact\.php$ - [F,END]
+RewriteRule ^contact\.php$ - [END]

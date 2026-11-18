@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// PHP 8.1+. No sessions, cookies, remote services, or visitor-controlled recipients.
+// Use the latest patched PHP 8.4 or 8.5. No application sessions or file uploads.
 ini_set('display_errors', '0');
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -14,6 +14,28 @@ function respond(int $status, bool $ok = false): never
     exit;
 }
 
+// These checks fail closed if deployment settings were missed. They cannot undo
+// work done during PHP startup and are NOT a replacement for runtime patches.
+$supportedRuntime = (PHP_VERSION_ID >= 80427 && PHP_VERSION_ID < 80500)
+    || (PHP_VERSION_ID >= 80512 && PHP_VERSION_ID < 80600);
+if (!$supportedRuntime || preg_match('/(?:dev|alpha|beta|RC)/i', PHP_VERSION)
+    || strtoupper((string) ini_get('variables_order')) !== 'S'
+    || ini_parse_quantity((string) ini_get('post_max_size')) <= 0
+    || ini_parse_quantity((string) ini_get('post_max_size')) > 65536) {
+    respond(503);
+}
+foreach (['enable_post_data_reading', 'file_uploads', 'session.upload_progress.enabled',
+    'session.auto_start', 'allow_url_fopen', 'allow_url_include', 'display_errors',
+    'display_startup_errors', 'expose_php'] as $setting) {
+    if (filter_var(ini_get($setting), FILTER_VALIDATE_BOOLEAN)) {
+        respond(503);
+    }
+}
+// A non-sensitive readiness marker: the startup-setting checks above passed.
+header('X-Contact-Policy: 2');
+if (($_SERVER['QUERY_STRING'] ?? '') !== '' || ($_SERVER['PATH_INFO'] ?? '') !== '') {
+    respond(400);
+}
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header('Allow: POST');
     respond(405);
@@ -24,7 +46,8 @@ if (($_SERVER['HTTP_X_CONTACT_FORM'] ?? '') !== '1'
     || ($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '') === 'cross-site') {
     respond(403);
 }
-if (strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0])) !== 'application/x-www-form-urlencoded') {
+if (!preg_match('/\Aapplication\/x-www-form-urlencoded(?:\s*;\s*charset=UTF-8)?\s*\z/i', $_SERVER['CONTENT_TYPE'] ?? '')
+    || ($_SERVER['HTTP_CONTENT_ENCODING'] ?? '') !== '') {
     respond(415);
 }
 // URL encoding can use up to twelve bytes per Unicode character.
@@ -35,11 +58,20 @@ $raw = file_get_contents('php://input', false, null, 0, 65537);
 if ($raw === false || strlen($raw) > 65536) {
     respond(413);
 }
-parse_str($raw, $fields);
-foreach (['name', 'email', 'message', 'website'] as $field) {
-    if (isset($fields[$field]) && !is_string($fields[$field])) {
+// Decode exactly four flat fields; never allocate nested arrays from field names.
+$pairs = explode('&', $raw);
+if (count($pairs) > 4 || preg_match('/%(?![0-9a-f]{2})/i', $raw)) {
+    respond(422);
+}
+$fields = [];
+foreach ($pairs as $pair) {
+    $parts = explode('=', $pair, 2);
+    $key = urldecode($parts[0]);
+    if (count($parts) !== 2 || !in_array($key, ['name', 'email', 'message', 'website'], true)
+        || array_key_exists($key, $fields)) {
         respond(422);
     }
+    $fields[$key] = urldecode($parts[1]);
 }
 $name = trim($fields['name'] ?? '');
 $email = trim($fields['email'] ?? '');
@@ -76,16 +108,33 @@ try {
         respond(503);
     }
 
-    // One bounded state file outside the document root. Lock updates across workers.
+    // One bounded state file in a private directory outside the document root.
     // Only keyed IP hashes and timestamps are stored; never messages or email addresses.
-    $statePath = sys_get_temp_dir() . '/contact-' . hash('sha256', __FILE__) . '.json';
+    $stateDirectory = sys_get_temp_dir() . '/contact-' . hash('sha256', __DIR__);
+    $previousMask = umask(0077);
+    if (!is_dir($stateDirectory)) {
+        @mkdir($stateDirectory, 0700);
+    }
+    umask($previousMask);
+    if (is_link($stateDirectory) || !is_dir($stateDirectory)
+        || (fileperms($stateDirectory) & 0077) !== 0
+        || (function_exists('posix_geteuid') && fileowner($stateDirectory) !== posix_geteuid())) {
+        respond(503);
+    }
+    $statePath = $stateDirectory . '/state.json';
+    if (is_link($statePath)) {
+        respond(503);
+    }
     $previousMask = umask(0077);
     $handle = fopen($statePath, 'c+');
     umask($previousMask);
-    if ($handle === false || !flock($handle, LOCK_EX)) {
+    if ($handle === false || !flock($handle, LOCK_EX | LOCK_NB)) {
         respond(503);
     }
-    $stored = stream_get_contents($handle);
+    $stored = stream_get_contents($handle, 16385);
+    if ($stored === false || strlen($stored) > 16384) {
+        respond(503);
+    }
     $now = time();
     $state = $stored === '' ? null : json_decode($stored, true, 512, JSON_THROW_ON_ERROR);
     if ($state === null || ($state['started'] ?? 0) + 3600 <= $now) {
