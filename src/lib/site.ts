@@ -7,4 +7,5 @@ export const site = {
     de: 'Softwareentwickler. Notizen dazu, was ich baue und warum.',
   } satisfies Record<Lang, string>,
   github: 'https://github.com/your-username',
+  contact: false,
 };

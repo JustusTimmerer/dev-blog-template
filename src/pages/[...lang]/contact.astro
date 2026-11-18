@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContactForm from '../../components/ContactForm.astro';
+import { localeStaticPaths, t, type Lang } from '../../lib/i18n';
+import { site } from '../../lib/site';
+
+export const getStaticPaths = () => site.contact ? localeStaticPaths() : [];
+const { lang } = Astro.props as { lang: Lang };
+const ui = t(lang);
+---
+
+<BaseLayout lang={lang} title={ui.navContact} description={ui.contactLede}>
+  <header class="page-head">
+    <h1>{ui.navContact}</h1>
+    <p>{ui.contactLede}</p>
+  </header>
+  <ContactForm lang={lang} />
+</BaseLayout>
+
+<style>
+  .page-head { max-width: var(--prose); margin-inline: auto; }
+</style>

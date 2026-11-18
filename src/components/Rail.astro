@@ -26,6 +26,7 @@ const current = (href: string) => (path === href ? 'page' : undefined);
       <a href={url(lang, '/')} aria-current={current(url(lang, '/'))}>{ui.start}</a>
       <a href={url(lang, '/blog/')} aria-current={current(url(lang, '/blog/'))}>{ui.allPosts}</a>
       <a href={url(lang, '/about/')} aria-current={current(url(lang, '/about/'))}>{ui.navAbout}</a>
+      {site.contact && <a href={url(lang, '/contact/')}>{ui.navContact}</a>}
     </nav>
     {series.length > 0 && (
       <nav class="rail-group" aria-label={ui.series}>

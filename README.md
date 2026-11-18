@@ -85,6 +85,16 @@ If you add `title="..."` after the language of a code block, the title shows abo
 
 ## Deployment
 
+### Optional contact form
+
+Set `contact: true` in `src/lib/site.ts` to add a homepage contact section, navigation links and English/German contact pages. Set `recipient` and `sender` in `public/contact-config.php`; use a real mailbox on your hosting account as sender. These addresses stay in PHP, outside the generated HTML and JavaScript. Keep personal configuration in your own site repository.
+
+The form needs JavaScript and a host that executes PHP 8.1 or newer with `mail()` enabled and a writable private system temporary directory. Astro's development/preview servers do not execute PHP. Upload the complete build, including both PHP files, to a PHP-enabled web root. Verify that `/contact-config.php` returns an empty body, and that GET `/contact.php` returns JSON with HTTP 405; if PHP source is returned, remove the PHP files and enable PHP before publishing the form. Send a real test message on your host and check inbox/spam: successful `mail()` acceptance does not guarantee delivery.
+
+The handler uses a fixed recipient and sender, validates input, rejects browser cross-origin submissions and traps a hidden spam field. It limits attempts to one per minute and five per hour per IP, plus thirty per hour across the site. It ignores forwarded IP headers. Rate-limit storage contains a random key, keyed IP hashes, counts and timestamps for the current one-hour window; the previous window is discarded on the next valid submission. Storage failure disables sending. These measures reduce abuse but do not block every bot.
+
+Adapt your privacy page for the submitted name, reply address and message and the abuse-prevention state before enabling the form. No cookies, external form providers or automatic replies are used. No message is stored in the website's rate-limit file. For local integration tests, run `python tests/contact-handler.py` with Docker available; the tests use a container-local mail sink and never send real email.
+
 The build output in `dist/` is plain HTML, CSS, JavaScript, fonts and images. Upload the content of the folder to the root of your web space, for example by FTP.
 
 On Apache hosts, add this line to a `.htaccess` file to show the custom 404 page:

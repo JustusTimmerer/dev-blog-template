@@ -4,7 +4,8 @@ import Rail from '../../components/Rail.astro';
 import PostCard from '../../components/PostCard.astro';
 import PostList from '../../components/PostList.astro';
 import { getPosts, getSeries, getSeriesPosts, seriesUrl } from '../../lib/posts';
-import { formatDate, localeStaticPaths, t, type Lang } from '../../lib/i18n';
+import { formatDate, localeStaticPaths, t, url, type Lang } from '../../lib/i18n';
+import { site } from '../../lib/site';
 
 export const getStaticPaths = localeStaticPaths;
 
@@ -60,6 +61,18 @@ const featuredSeries = await Promise.all(
           <PostList lang={lang} posts={latest} />
         </section>
       )}
+      {site.contact && (
+        <section class="home-contact" aria-labelledby="contact-heading">
+          <h2 class="section-title" id="contact-heading">{ui.navContact}</h2>
+          <p>{ui.contactLede}</p>
+          <a href={url(lang, '/contact/')}>{ui.contactLink}</a>
+        </section>
+      )}
     </div>
   </div>
 </BaseLayout>
+
+<style>
+  .home-contact p { color: var(--ink-soft); }
+  .home-contact > a { color: var(--accent); text-underline-offset: 3px; }
+</style>

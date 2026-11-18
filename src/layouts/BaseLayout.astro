@@ -32,6 +32,7 @@ const nav = [
   { label: ui.navSeries, href: url(lang, '/series/') },
   ...(hasBites ? [{ label: ui.navBites, href: url(lang, '/bites/'), optional: true }] : []),
   { label: ui.navAbout, href: url(lang, '/about/'), optional: true },
+  ...(site.contact ? [{ label: ui.navContact, href: url(lang, '/contact/') }] : []),
 ];
 const legal = [
   { label: ui.legal, href: url(lang, '/legal/') },
