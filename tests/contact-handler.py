@@ -18,6 +18,9 @@ def docker(*args):
 
 with tempfile.TemporaryDirectory(prefix='contact-handler-') as directory:
     root = Path(directory)
+    # Linux runners create temporary directories as 0700; Apache's www-data user
+    # needs to read this synthetic fixture through the read-only bind mount.
+    root.chmod(0o755)
     source = Path(__file__).resolve().parents[1] / 'server'
     shutil.copy(source / 'contact.php', root / 'contact.php')
     (root / 'contact-config.php').write_text("<?php return ['recipient' => 'owner@example.invalid', 'sender' => 'sender@example.invalid'];", encoding='utf-8')
